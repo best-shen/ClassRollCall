@@ -1,10 +1,12 @@
 // 文件路径: entry/src/main/ets/pages/Index.ets
-
 import router from '@ohos.router';
 import cloud, { DatabaseCollection } from '@hw-agconnect/cloud';
 import { Database } from '@hw-agconnect/cloud/src/main/ets/database/Database';
 import { ClassInfo } from '../model/ClassInfo';
+import { Student } from '../model/Student';
+import { Attendance } from '../model/Attendance';
 import info from '../../resources/rawfile/schema.json';
+import prompt from '@ohos.prompt';
 
 @Entry
 @Component
@@ -74,15 +76,48 @@ struct Index {
   }
 
   async deleteClass(classInfoToDelete: ClassInfo) {
-    try {
-      const className = classInfoToDelete.getClassName() as string;
-      await this.getCollection().delete(classInfoToDelete);
-      await this.queryClasses();
-      this.message = `班级 "${className}" 已被删除`;
-    } catch (e) {
-      this.message = '删除失败，请检查权限或查看日志';
-      console.error('Delete class failed:', JSON.stringify(e));
-    }
+    // 【已修复】直接访问JS对象的属性，并将其赋值给一个具有明确类型的变量
+    const className: string = classInfoToDelete.className;
+
+    prompt.showDialog({
+      title: '确认删除',
+      message: `您确定要删除班级 "${className}" 吗？\n该班级下的所有学生和历史考勤记录也将被永久删除！`,
+      buttons: [
+        { text: '取消', color: '#666666' },
+        { text: '确认删除', color: '#FF0000' }
+      ]
+    }).then(async (result) => {
+      if (result.index === 1) {
+        this.message = `正在删除班级 "${className}"...`;
+        this.isLoading = true;
+        try {
+          const studentCollection: DatabaseCollection<Student> = this.database!.collection(Student);
+          const attendanceCollection: DatabaseCollection<Attendance> = this.database!.collection(Attendance);
+          const classCollection: DatabaseCollection<ClassInfo> = this.getCollection();
+
+          const studentsToDelete = await studentCollection.query().equalTo('className', className).get();
+          if (studentsToDelete.length > 0) {
+            await studentCollection.delete(studentsToDelete);
+          }
+
+          const attendancesToDelete = await attendanceCollection.query().equalTo('className', className).get();
+          if (attendancesToDelete.length > 0) {
+            await attendanceCollection.delete(attendancesToDelete);
+          }
+
+          await classCollection.delete(classInfoToDelete);
+
+          this.message = `班级 "${className}" 已被彻底删除`;
+          await this.queryClasses();
+
+        } catch (e) {
+          this.message = '删除失败，请检查权限或查看日志';
+          console.error('Delete class failed:', JSON.stringify(e));
+        } finally {
+          this.isLoading = false;
+        }
+      }
+    });
   }
 
   build() {
@@ -119,7 +154,6 @@ struct Index {
               }
               .width('100%')
               .padding(16)
-              // 【UI优化】卡片背景色修改为更柔和的浅色
               .backgroundColor('#F7FBF9')
               .borderRadius(15)
               .shadow({ radius: 6, color: '#0000001A', offsetX: 2, offsetY: 4 })
@@ -135,7 +169,6 @@ struct Index {
       }
       .width('100%')
       .height('100%')
-      // 【UI优化】背景色修改为浅绿色
       .backgroundColor('#E0EFE8')
 
       if (this.showAddDialog) {
