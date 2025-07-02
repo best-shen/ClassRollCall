@@ -4,6 +4,7 @@
     "pages/StudentPage",
     "pages/RollCallPage",
     "pages/HistoryPage",
-    "pages/RollCallDetailPage"
+    "pages/RollCallDetailPage",
+    "pages/SummaryPage"
   ]
 }
