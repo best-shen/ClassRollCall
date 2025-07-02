@@ -82,10 +82,49 @@ struct RollCallPage {
   }
 
   async saveAttendance() {
-    try {
-      const attendanceCollection: DatabaseCollection<Attendance> = this.database!.collection(Attendance);
+    // 1. 生成唯一的会话ID，用于检查
+    const sessionId = `${this.className}-${this.courseName}-${this.date}-${this.startPeriod}-${this.endPeriod}`;
+    const attendanceCollection: DatabaseCollection<Attendance> = this.database!.collection(Attendance);
 
-      const sessionId = `${this.className}-${this.courseName}-${this.date}-${this.startPeriod}-${this.endPeriod}`;
+    try {
+      // 2. 检查该 sessionId 是否已存在
+      // 我们只需要查询一条记录即可，使用 limit(1) 提高效率
+      const existingRecords = await attendanceCollection.query().equalTo('sessionId', sessionId).limit(1).get();
+
+      if (existingRecords.length > 0) {
+        // 3. 如果记录已存在，弹出对话框让用户确认
+        prompt.showDialog({
+          title: '记录已存在',
+          message: '本次点名记录已存在，您想覆盖之前的记录吗？',
+          buttons: [
+            {
+              text: '取消',
+              color: '#666666'
+            },
+            {
+              text: '覆盖保存',
+              color: '#4CAF50'
+            }
+          ]
+        }).then(result => {
+          if (result.index === 1) { // 用户点击了第二个按钮 "覆盖保存"
+            this.executeSave(sessionId, attendanceCollection);
+          }
+          // 如果用户点击 "取消" (index 0) 或关闭对话框，则什么都不做
+        });
+      } else {
+        // 4. 如果记录不存在，直接执行保存
+        this.executeSave(sessionId, attendanceCollection);
+      }
+    } catch (e) {
+      prompt.showToast({ message: '操作失败，请检查网络' });
+      console.error('Check or save attendance failed:', JSON.stringify(e));
+    }
+  }
+
+  // 将真正的保存逻辑封装成一个独立的私有方法，便于复用
+  private async executeSave(sessionId: string, attendanceCollection: DatabaseCollection<Attendance>) {
+    try {
       const periodString = `${this.startPeriod}-${this.endPeriod}`;
 
       const attendanceEntries: Attendance[] = this.attendanceRecords.map(record => {
@@ -108,7 +147,7 @@ struct RollCallPage {
 
     } catch (e) {
       prompt.showToast({ message: '保存失败，请稍后重试' });
-      console.error('Save attendance failed:', JSON.stringify(e));
+      console.error('Execute save attendance failed:', JSON.stringify(e));
     }
   }
 

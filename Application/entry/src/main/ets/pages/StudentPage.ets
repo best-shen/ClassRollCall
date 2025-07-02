@@ -192,26 +192,35 @@ struct StudentPage {
         }
         .width('100%').padding({ left: 16, right: 16 }).height(56)
 
+        // 【UI已修改】统一按钮风格
         Row({ space: 12 }) {
           Button('历史考勤')
             .onClick(() => {
-              this.message = '历史考勤功能待开发'
+              router.pushUrl({
+                url: 'pages/HistoryPage',
+                params: { className: this.currentClassName }
+              });
             })
             .layoutWeight(1)
-            .backgroundColor('#FFFFFF')
+            .type(ButtonType.Capsule) // 统一为胶囊形状
+            .backgroundColor('#F0F0F0') // 使用更柔和的浅灰色
             .fontColor(Color.Black)
+
           Button('开始点名')
             .onClick(() => {
               this.showRollCallDialog = true;
             })
             .layoutWeight(1)
-            .type(ButtonType.Capsule)
+            .type(ButtonType.Capsule) // 保持胶囊形状
+            .backgroundColor('#4CAF50') // 保持主题色
+
           Button('粘贴导入').onClick(() => {
             this.pastedCsvText = '';
             this.showPasteDialog = true;
           })
             .layoutWeight(1)
-            .backgroundColor('#FFFFFF')
+            .type(ButtonType.Capsule) // 统一为胶囊形状
+            .backgroundColor('#F0F0F0') // 使用更柔和的浅灰色
             .fontColor(Color.Black)
         }.width('100%').padding({ left: 16, right: 16, bottom: 10 })
 
@@ -317,7 +326,6 @@ struct StudentPage {
             .height(50).margin({ bottom: 12 })
 
           TextInput({ placeholder: '格式: YYYY-MM-DD', text: this.dateString })
-            // 【已修复】将键盘类型改为 Normal，以允许输入 '-' 分隔符
             .type(InputType.Normal)
             .height(50)
             .width('100%')
