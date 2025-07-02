@@ -1,0 +1,19 @@
+{
+  "appSelected": {
+    "appId": "6917577453901422871",
+    "appName": "class_hm",
+    "deviceTypes": [
+      {
+        "appAdapters": "5",
+        "deviceType": 4
+      }
+    ],
+    "enableSites": "CN",
+    "installationFree": 0,
+    "packageType": 7,
+    "projectId": "461323198430074738",
+    "projectName": "ClassRollCall",
+    "siteId": "CN"
+  },
+  "teamId": "30086000729603482"
+}
