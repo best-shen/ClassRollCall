@@ -4,18 +4,10 @@ import cloud, { DatabaseCollection } from '@hw-agconnect/cloud';
 import { Database } from '@hw-agconnect/cloud/src/main/ets/database/Database';
 import { Student } from '../model/Student';
 import info from '../../resources/rawfile/schema.json';
-// 【最终修复】步骤1：使用 'import * as' 语法将模块作为命名空间导入。
-import * as promptAction from '@ohos.promptAction';
+import prompt from '@ohos.prompt';
 
 interface StudentPageParams {
   className: string;
-}
-
-// 【最终修复】步骤2：手动定义 DatePickerResult 接口。
-interface DatePickerResult {
-  year: number;
-  month: number;
-  day: number;
 }
 
 @Entry
@@ -34,7 +26,7 @@ struct StudentPage {
   @State pastedCsvText: string = '';
   @State showRollCallDialog: boolean = false;
   @State courseName: string = '';
-  @State selectedDate: Date = new Date();
+  @State dateString: string = '';
   @State startPeriod: number = 1;
   @State endPeriod: number = 2;
 
@@ -48,6 +40,7 @@ struct StudentPage {
     }
     this.initDatabase();
     await this.queryAndFilterStudents();
+    this.dateString = this.formatDate(new Date());
   }
 
   initDatabase(): void {
@@ -323,18 +316,13 @@ struct StudentPage {
             .onChange((val) => { this.courseName = val; })
             .height(50).margin({ bottom: 12 })
 
-          Button(this.formatDate(this.selectedDate))
+          TextInput({ placeholder: '格式: YYYY-MM-DD', text: this.dateString })
+            // 【已修复】将键盘类型改为 Normal，以允许输入 '-' 分隔符
+            .type(InputType.Normal)
+            .height(50)
             .width('100%')
-            .onClick(async () => {
-              try {
-                // 【最终修复】步骤3：使用导入的命名空间 promptAction，并调用其 showDatePickerDialog 方法。
-                const result: DatePickerResult = await promptAction.showDatePickerDialog({
-                  selected: this.selectedDate,
-                });
-                this.selectedDate = new Date(result.year, result.month, result.day);
-              } catch (error) {
-                console.error('Date picker dialog was cancelled or failed.', JSON.stringify(error));
-              }
+            .onChange((value: string) => {
+              this.dateString = value;
             })
             .margin({ bottom: 12 })
 
@@ -355,11 +343,18 @@ struct StudentPage {
             Button('取消').onClick(() => { this.showRollCallDialog = false; }).layoutWeight(1).backgroundColor('#9E9E9E')
             Button('开始点名').onClick(() => {
               if (!this.courseName.trim()) {
-                this.message = '课程名称不能为空';
+                prompt.showToast({ message: '课程名称不能为空' });
                 return;
               }
+
+              const parsedDate = new Date(this.dateString);
+              if (!this.dateString.match(/^\d{4}-\d{2}-\d{2}$/) || isNaN(parsedDate.getTime())) {
+                prompt.showToast({ message: '日期格式不正确，请使用 YYYY-MM-DD' });
+                return;
+              }
+
               if (this.startPeriod > this.endPeriod) {
-                this.message = '开始节次不能大于结束节次';
+                prompt.showToast({ message: '开始节次不能大于结束节次' });
                 return;
               }
               router.pushUrl({
@@ -367,7 +362,7 @@ struct StudentPage {
                 params: {
                   className: this.currentClassName,
                   courseName: this.courseName,
-                  date: this.formatDate(this.selectedDate),
+                  date: this.dateString,
                   startPeriod: this.startPeriod,
                   endPeriod: this.endPeriod
                 }
