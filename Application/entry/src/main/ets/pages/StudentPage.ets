@@ -4,11 +4,18 @@ import cloud, { DatabaseCollection } from '@hw-agconnect/cloud';
 import { Database } from '@hw-agconnect/cloud/src/main/ets/database/Database';
 import { Student } from '../model/Student';
 import info from '../../resources/rawfile/schema.json';
-// 【已修复】使用正确的组合导入方式：showDatePickerDialog 是默认导出，DatePickerResult 是命名导出
-import showDatePickerDialog, { DatePickerResult } from '@ohos.promptAction';
+// 【最终修复】步骤1：使用 'import * as' 语法将模块作为命名空间导入。
+import * as promptAction from '@ohos.promptAction';
 
 interface StudentPageParams {
   className: string;
+}
+
+// 【最终修复】步骤2：手动定义 DatePickerResult 接口。
+interface DatePickerResult {
+  year: number;
+  month: number;
+  day: number;
 }
 
 @Entry
@@ -320,8 +327,8 @@ struct StudentPage {
             .width('100%')
             .onClick(async () => {
               try {
-                // 调用已正确导入的默认导出函数
-                const result: DatePickerResult = await showDatePickerDialog({
+                // 【最终修复】步骤3：使用导入的命名空间 promptAction，并调用其 showDatePickerDialog 方法。
+                const result: DatePickerResult = await promptAction.showDatePickerDialog({
                   selected: this.selectedDate,
                 });
                 this.selectedDate = new Date(result.year, result.month, result.day);
